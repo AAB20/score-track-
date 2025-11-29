@@ -9,7 +9,7 @@ export const generateAcademicInsights = async (subjects: Subject[]): Promise<Ins
     throw new Error("API Key is missing. Please configure process.env.API_KEY.");
   }
 
-  // Prepare data for the model - keep it concise to save tokens
+  // Prepare data for the model
   const summaryData = subjects.map(s => {
     const totalObtained = s.scores.reduce((acc, curr) => acc + curr.obtained, 0);
     const totalPossible = s.scores.reduce((acc, curr) => acc + curr.total, 0);
@@ -19,14 +19,19 @@ export const generateAcademicInsights = async (subjects: Subject[]): Promise<Ins
       subject: s.name,
       currentGrade: percentage.toFixed(1) + '%',
       target: s.targetScore + '%',
-      assessmentCount: s.scores.length,
-      scores: s.scores.map(sc => `${sc.title} (${sc.type}): ${sc.obtained}/${sc.total}`).slice(-5) // Last 5 scores
+      scores: s.scores.map(sc => `${sc.title}: ${sc.obtained}/${sc.total}`).slice(-5)
     };
   });
 
   const prompt = `
-    Analyze the following academic performance data for a student.
-    Provide a concise summary, identify key strengths, pinpoint weaknesses or areas for improvement, and give 3 actionable study tips.
+    Analyze the student's academic performance in these Python/Tech subjects.
+    
+    Provide:
+    1. A concise summary of their progress.
+    2. Key strengths (e.g., "Strong grasp of Pandas").
+    3. Weaknesses to address.
+    4. 3 Actionable Study Tips. 
+       **CRITICAL:** For the tips, include short **Python code snippets** or library recommendations (e.g., "Use st.session_state for managing variables" or "Try list comprehensions").
     
     Data: ${JSON.stringify(summaryData)}
   `;
@@ -40,10 +45,10 @@ export const generateAcademicInsights = async (subjects: Subject[]): Promise<Ins
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            summary: { type: Type.STRING, description: "Overall concise academic summary" },
-            strengths: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of academic strengths" },
-            weaknesses: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of areas to improve" },
-            tips: { type: Type.ARRAY, items: { type: Type.STRING }, description: "3 actionable study tips" }
+            summary: { type: Type.STRING, description: "Overall summary" },
+            strengths: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of strengths" },
+            weaknesses: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of weaknesses" },
+            tips: { type: Type.ARRAY, items: { type: Type.STRING }, description: "3 tips with Python code snippets/concepts" }
           },
           required: ["summary", "strengths", "weaknesses", "tips"]
         }
